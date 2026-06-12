@@ -67,12 +67,6 @@ jobs:
 
           done < url.txt
 
-          sort -u old.txt -o old.txt
-          sort -u url2.txt -o url2.txt
+          cat url2.txt| sort -u | notify
 
-          comm -13 old.txt url2.txt > 2.txt
-
-          cat 2.txt | notify
-
-          cp url2.txt old.txt
-          rm -f url.txt url2.txt 2.txt
+          rm -f *.txt
