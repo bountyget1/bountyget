@@ -41,6 +41,8 @@ jobs:
         run: |
           set -e
 
+          touch old.txt
+
           curl --path-as-is -s -k --compressed -X POST \
             -H 'Content-Type: application/json' \
             -H 'Origin: https://www.postman.com' \
