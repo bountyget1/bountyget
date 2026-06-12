@@ -1,0 +1,77 @@
+name: Postman Monitor
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl gawk
+          go install github.com/projectdiscovery/notify/cmd/notify@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Configure notify
+        run: |
+          mkdir -p ~/.config/notify
+
+          cat > ~/.config/notify/provider-config.yaml << EOF
+          telegram:
+            - id: telegram
+              discord_channel: "crawl"
+              discord_username: "test"
+              discord_format: "{{data}}"
+              discord_webhook_url: "https://discord.com/api/webhooks/1514983279739011122/_7NOTjyJQbFpDlxw-caCeDrlehlWZxlHqYMvnsV9n9KxbJ9-A8UALKBY2j-mdm66s4bD"
+          EOF
+
+      - name: Run monitor
+        shell: bash
+        run: |
+          set -e
+
+          rm -f url.txt url2.txt 2.txt
+
+          curl --path-as-is -s -k --compressed -X POST \
+            -H 'Content-Type: application/json' \
+            -H 'Origin: https://www.postman.com' \
+            -H 'User-Agent: Mozilla/5.0' \
+            --data-binary '{"service":"publishing","method":"get","path":"/v1/api/networkentity?limit=10&type=public&referrer=explore&entityType=collection&flattenAPIVersions=true&category=&sort=latest&page=explore%2Fcollections%3Fsort%3Dlatest%26filter%3D%26page%3D1"}' \
+            'https://www.postman.com/_api/ws/proxy' \
+          | grep -oE '"redirectURL":"[^"]+"' \
+          | cut -d'"' -f4 > url.txt
+
+          KEYWORDS="login|log in|logon|log on|signin|sign in|sign-in|access token"
+
+          while read -r url; do
+            [[ -z "$url" ]] && continue
+
+            collection_id=$(echo "$url" | awk -F'/' '{print $NF}')
+
+            response=$(curl -s "https://www.postman.com/_api/collection/${collection_id}/sync?since_id=0&favorite=true&exclude=response%2Crequest")
+
+            if echo "$response" | grep -Eiq "$KEYWORDS"; then
+              echo "$url" >> url2.txt
+            fi
+
+          done < url.txt
+
+          sort -u old.txt -o old.txt
+          sort -u url2.txt -o url2.txt
+
+          comm -13 old.txt url2.txt > 2.txt
+
+          cat 2.txt | notify
+
+          cp url2.txt old.txt
