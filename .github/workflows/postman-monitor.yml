@@ -47,7 +47,7 @@ jobs:
             -H 'Content-Type: application/json' \
             -H 'Origin: https://www.postman.com' \
             -H 'User-Agent: Mozilla/5.0' \
-            --data-binary '{"service":"publishing","method":"get","path":"/v1/api/networkentity?limit=10&type=public&referrer=explore&entityType=collection&flattenAPIVersions=true&category=&sort=latest&page=explore%2Fcollections%3Fsort%3Dlatest%26filter%3D%26page%3D1"}' \
+            --data-binary '{"service":"publishing","method":"get","path":"/v1/api/networkentity?limit=5&type=public&referrer=explore&entityType=collection&flattenAPIVersions=true&category=&sort=latest&page=explore%2Fcollections%3Fsort%3Dlatest%26filter%3D%26page%3D1"}' \
             'https://www.postman.com/_api/ws/proxy' \
           | grep -oE '"redirectURL":"[^"]+"' \
           | cut -d'"' -f4 > url.txt
